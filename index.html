@@ -2,14 +2,18 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구구단 마스터 - 초등 3학년</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>구구단 터치 & 키보드 마스터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Gaegu', cursive;
             background-color: #f0f9ff;
+            -webkit-user-select: none;
+            user-select: none;
+            overflow: hidden;
+            height: 100vh;
         }
         .card {
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
@@ -23,56 +27,79 @@
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
+        .key-btn:active {
+            transform: scale(0.95);
+            background-color: #e0f2fe;
+        }
+        /* 입력창 포커스 효과 제거 */
+        #answer-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="flex items-center justify-center p-2">
 
-    <div id="game-container" class="max-w-md w-full bg-white rounded-3xl p-8 card text-center">
+    <div id="game-container" class="max-w-md w-full bg-white rounded-3xl p-6 card text-center flex flex-col h-[95vh]">
+        
         <!-- 시작 화면 -->
-        <div id="start-screen">
-            <h1 class="text-5xl font-bold text-blue-600 mb-6">구구단 마스터! 🏆</h1>
-            <p class="text-xl text-gray-600 mb-8">10문제를 가장 빨리 풀어보세요!<br>기록에 따라 멋진 등급을 줄게요.</p>
-            <button onclick="startGame()" class="bg-yellow-400 hover:bg-yellow-500 text-blue-900 text-2xl font-bold py-4 px-10 rounded-full transition-all transform hover:scale-105">
+        <div id="start-screen" class="flex-grow flex flex-col justify-center items-center">
+            <h1 class="text-5xl font-bold text-blue-600 mb-6">구구단<br>멀티 마스터! 🏆</h1>
+            <p class="text-xl text-gray-600 mb-8">10문제를 가장 빨리 풀어보세요!<br>터치와 키보드 모두 가능해요.</p>
+            <button onclick="startGame()" class="bg-yellow-400 hover:bg-yellow-500 text-blue-900 text-3xl font-bold py-5 px-12 rounded-full transition-all transform hover:scale-105 shadow-lg">
                 게임 시작!
             </button>
         </div>
 
         <!-- 게임 진행 화면 -->
-        <div id="game-screen" class="hidden">
-            <div class="flex justify-between items-center mb-6">
-                <span class="bg-blue-100 text-blue-800 px-4 py-1 rounded-full text-lg">문제: <span id="current-count">1</span> / 10</span>
-                <span id="timer" class="text-red-500 font-bold text-2xl">0.0초</span>
+        <div id="game-screen" class="hidden flex-grow flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-md font-bold">진행도: <span id="current-count">1</span> / 10</span>
+                <span id="timer" class="text-red-500 font-bold text-2xl w-24 text-right">0.0초</span>
             </div>
 
-            <div id="problem-box" class="py-12 bg-blue-50 rounded-2xl mb-8">
-                <div class="text-7xl font-bold text-gray-800" id="problem-text">2 × 3 = ?</div>
+            <div id="problem-box" class="py-8 bg-blue-50 rounded-2xl mb-4 transition-all">
+                <div class="text-6xl font-bold text-gray-800" id="problem-text">2 × 3 = ?</div>
             </div>
 
             <div class="relative mb-4">
-                <input type="number" id="answer-input" 
-                    class="w-full text-4xl border-4 border-blue-200 rounded-xl p-4 text-center focus:outline-none focus:border-blue-500 transition-colors" 
-                    placeholder="정답 입력"
-                    onkeyup="if(window.event.keyCode==13){checkAnswer()}">
+                <!-- inputmode="none"으로 모바일 가상 키보드를 방지하면서 포커스는 유지 -->
+                <input type="text" id="answer-input" 
+                    class="w-full text-5xl border-4 border-blue-200 rounded-xl p-3 text-center transition-colors bg-white text-blue-600 font-bold" 
+                    placeholder="?" inputmode="none" autocomplete="off">
             </div>
             
-            <button onclick="checkAnswer()" class="w-full bg-blue-500 hover:bg-blue-600 text-white text-2xl font-bold py-4 rounded-xl shadow-lg transition-all">
-                입력 완료 (Enter)
-            </button>
-            <p id="feedback" class="mt-4 text-xl font-bold h-8"></p>
+            <p id="feedback" class="text-xl font-bold h-7 mb-2"></p>
+
+            <!-- 터치 키패드 -->
+            <div id="keyboard" class="grid grid-cols-3 gap-3 flex-grow bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <button onclick="pressKey('1')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">1</button>
+                <button onclick="pressKey('2')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">2</button>
+                <button onclick="pressKey('3')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">3</button>
+                <button onclick="pressKey('4')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">4</button>
+                <button onclick="pressKey('5')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">5</button>
+                <button onclick="pressKey('6')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">6</button>
+                <button onclick="pressKey('7')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">7</button>
+                <button onclick="pressKey('8')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">8</button>
+                <button onclick="pressKey('9')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">9</button>
+                <button onclick="pressKey('del')" class="key-btn bg-red-100 border border-red-200 rounded-xl text-3xl font-bold py-4 shadow text-red-700">⌫</button>
+                <button onclick="pressKey('0')" class="key-btn bg-white border border-gray-200 rounded-xl text-4xl font-bold py-4 shadow text-gray-700">0</button>
+                <button onclick="pressKey('enter')" class="key-btn bg-blue-500 border border-blue-600 rounded-xl text-3xl font-bold py-4 shadow text-white">↵</button>
+            </div>
         </div>
 
         <!-- 결과 화면 -->
-        <div id="result-screen" class="hidden">
+        <div id="result-screen" class="hidden flex-grow flex flex-col justify-center items-center">
             <h2 class="text-4xl font-bold text-gray-800 mb-4">참 잘했어요! 🌟</h2>
             <div class="text-2xl mb-2">총 소요 시간: <span id="final-time" class="font-bold text-red-500">0.0</span>초</div>
             
-            <div class="my-8 p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-200">
+            <div class="my-8 p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-200 w-full">
                 <div class="text-lg text-gray-600 mb-2">나의 등급</div>
                 <div id="grade-text" class="text-5xl font-black text-yellow-600">S급 마스터</div>
-                <div id="grade-desc" class="mt-2 text-gray-500">번개같은 실력이에요!</div>
+                <div id="grade-desc" class="mt-2 text-gray-500 text-lg">번개같은 실력이에요!</div>
             </div>
 
-            <button onclick="resetGame()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-xl font-bold py-3 px-8 rounded-full transition-all">
+            <button onclick="resetGame()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-xl font-bold py-3 px-10 rounded-full transition-all">
                 다시 도전하기
             </button>
         </div>
@@ -80,11 +107,32 @@
 
     <script>
         let currentProblem = 0;
-        let correctAnswers = 0;
         let startTime = 0;
         let timerInterval;
         let num1, num2;
         const totalProblems = 10;
+        const answerInput = document.getElementById('answer-input');
+
+        // 물리 키보드 이벤트 리스너 수정
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('game-screen').classList.contains('hidden')) return;
+
+            // 숫자 입력 처리
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault(); // 기본 입력 방지 (중복 입력 해결)
+                pressKey(e.key);
+            } 
+            // 백스페이스 처리
+            else if (e.key === 'Backspace') {
+                e.preventDefault();
+                pressKey('del');
+            } 
+            // 엔터 처리
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                pressKey('enter');
+            }
+        });
 
         function startGame() {
             document.getElementById('start-screen').classList.add('hidden');
@@ -95,6 +143,7 @@
             startTime = Date.now();
             
             updateTimer();
+            clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 100);
             nextProblem();
         }
@@ -106,19 +155,35 @@
         }
 
         function nextProblem() {
-            // 2단~9단까지 무작위 추출
             num1 = Math.floor(Math.random() * 8) + 2; 
             num2 = Math.floor(Math.random() * 9) + 1;
             
             document.getElementById('problem-text').innerText = `${num1} × ${num2} = ?`;
             document.getElementById('current-count').innerText = currentProblem;
-            document.getElementById('answer-input').value = '';
-            document.getElementById('answer-input').focus();
+            answerInput.value = '';
             document.getElementById('feedback').innerText = '';
+            answerInput.focus();
+        }
+
+        function pressKey(key) {
+            const currentAnswer = answerInput.value;
+
+            if (key === 'del') {
+                answerInput.value = currentAnswer.slice(0, -1);
+            } else if (key === 'enter') {
+                if (currentAnswer !== '') {
+                    checkAnswer();
+                }
+            } else {
+                // 구구단 답은 최대 2자리 (81)
+                if (currentAnswer.length < 2) {
+                    answerInput.value = currentAnswer + key;
+                }
+            }
         }
 
         function checkAnswer() {
-            const userAnswer = parseInt(document.getElementById('answer-input').value);
+            const userAnswer = parseInt(answerInput.value);
             const correctAnswer = num1 * num2;
             const feedback = document.getElementById('feedback');
             const problemBox = document.getElementById('problem-box');
@@ -127,21 +192,20 @@
 
             if (userAnswer === correctAnswer) {
                 feedback.innerText = "정답입니다! 🎉";
-                feedback.className = "mt-4 text-xl font-bold text-green-500";
+                feedback.className = "text-xl font-bold text-green-500";
                 
                 if (currentProblem < totalProblems) {
                     currentProblem++;
-                    setTimeout(nextProblem, 500);
+                    setTimeout(nextProblem, 400);
                 } else {
-                    endGame();
+                    setTimeout(endGame, 400);
                 }
             } else {
-                feedback.innerText = "틀렸어요! 다시 생각해보세요. 🤔";
-                feedback.className = "mt-4 text-xl font-bold text-red-500";
+                feedback.innerText = "틀렸어요! 다시 해보세요. 🤔";
+                feedback.className = "text-xl font-bold text-red-500";
                 problemBox.classList.add('shake');
                 setTimeout(() => problemBox.classList.remove('shake'), 500);
-                document.getElementById('answer-input').value = '';
-                document.getElementById('answer-input').focus();
+                answerInput.value = '';
             }
         }
 
@@ -154,26 +218,22 @@
             document.getElementById('result-screen').classList.remove('hidden');
             document.getElementById('final-time').innerText = totalSeconds;
 
-            // 등급 판정
             let grade = "";
             let desc = "";
             const time = parseFloat(totalSeconds);
 
-            if (time <= 20) {
+            if (time <= 10.0) {
                 grade = "신(God) 등급 ⚡";
-                desc = "인간이 아니시군요! 구구단의 신입니다!";
-            } else if (time <= 35) {
+                desc = "인간의 경지를 넘어선 속도에요!";
+            } else if (time <= 20.0) {
                 grade = "S급 마스터 🏆";
-                desc = "정말 대단해요! 구구단 박사님이시네요!";
-            } else if (time <= 50) {
+                desc = "정말 대단해요! 구구단 박사님이시군요!";
+            } else if (time <= 30.0) {
                 grade = "A급 우등생 ⭐";
                 desc = "훌륭합니다! 실력이 아주 뛰어나요.";
-            } else if (time <= 70) {
-                grade = "B급 노력가 👍";
-                desc = "잘하고 있어요! 조금만 더 연습해볼까요?";
             } else {
-                grade = "C급 꿈나무 🌱";
-                desc = "천천히 끝까지 풀어낸 당신이 최고예요!";
+                grade = "B급 노력가 👍";
+                desc = "끝까지 잘 해냈어요! 조금 더 빨라져 볼까요?";
             }
 
             document.getElementById('grade-text').innerText = grade;
