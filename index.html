@@ -113,13 +113,61 @@
         const totalProblems = 10;
         const answerInput = document.getElementById('answer-input');
 
-        // 물리 키보드 이벤트 리스너 수정
+        // 효과음 합성 함수 (Web Audio API)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                // 딩동댕 소리
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // 도
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // 미
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'wrong') {
+                // 땡 소리
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'fanfare') {
+                // 빵빠레 소리
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // 도 미 솔 도(옥타브)
+                notes.forEach((freq, i) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.type = 'triangle';
+                    o.frequency.setValueAtTime(freq, now + (i * 0.15));
+                    g.gain.setValueAtTime(0.2, now + (i * 0.15));
+                    g.gain.exponentialRampToValueAtTime(0.01, now + (i * 0.15) + 0.5);
+                    o.start(now + (i * 0.15));
+                    o.stop(now + (i * 0.15) + 0.5);
+                });
+            }
+        }
+
+        // 물리 키보드 이벤트 리스너
         document.addEventListener('keydown', (e) => {
             if (document.getElementById('game-screen').classList.contains('hidden')) return;
 
             // 숫자 입력 처리
             if (e.key >= '0' && e.key <= '9') {
-                e.preventDefault(); // 기본 입력 방지 (중복 입력 해결)
+                e.preventDefault(); 
                 pressKey(e.key);
             } 
             // 백스페이스 처리
@@ -135,6 +183,9 @@
         });
 
         function startGame() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             document.getElementById('result-screen').classList.add('hidden');
@@ -175,7 +226,6 @@
                     checkAnswer();
                 }
             } else {
-                // 구구단 답은 최대 2자리 (81)
                 if (currentAnswer.length < 2) {
                     answerInput.value = currentAnswer + key;
                 }
@@ -191,6 +241,7 @@
             if (isNaN(userAnswer)) return;
 
             if (userAnswer === correctAnswer) {
+                playSound('correct');
                 feedback.innerText = "정답입니다! 🎉";
                 feedback.className = "text-xl font-bold text-green-500";
                 
@@ -201,6 +252,7 @@
                     setTimeout(endGame, 400);
                 }
             } else {
+                playSound('wrong');
                 feedback.innerText = "틀렸어요! 다시 해보세요. 🤔";
                 feedback.className = "text-xl font-bold text-red-500";
                 problemBox.classList.add('shake');
@@ -211,6 +263,7 @@
 
         function endGame() {
             clearInterval(timerInterval);
+            playSound('fanfare');
             const endTime = Date.now();
             const totalSeconds = ((endTime - startTime) / 1000).toFixed(1);
             
